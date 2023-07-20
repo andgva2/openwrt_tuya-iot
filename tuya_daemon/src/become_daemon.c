@@ -4,7 +4,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <utils/become_daemon.h>
+#include <become_daemon.h>
 
 // returns 0 on success -1 on error
 int become_daemon(int flags)

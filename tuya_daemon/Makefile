@@ -6,17 +6,17 @@ PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/log_daemon
+define Package/tuya_daemon
 	CATEGORY:=Tuya
 	TITLE:=tuya_daemon
-	DEPENDS:= +tuya-iot-core-sdk +libubus +libubox +libblobmsg-json
+	DEPENDS:=+tuya-iot-core-sdk
 endef
 
-define Package/log_daemon/description
+define Package/tuya_daemon/description
 	Data exchange with Tuya Cloud
 endef
 
-define Package/log_daemon/install
+define Package/tuya_daemon/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_DIR) $(1)/etc/config

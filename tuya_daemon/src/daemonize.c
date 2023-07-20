@@ -1,6 +1,6 @@
-#include <utils/daemonize.h>
+#include <daemonize.h>
 
-int is_daemon = 1;
+int is_daemon = 0;
 
 int daemonize(int flag)
 {

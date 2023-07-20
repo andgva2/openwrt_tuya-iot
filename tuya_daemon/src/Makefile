@@ -7,7 +7,7 @@ BUILD_FLAGS:=-I$(INCLUDE_DIR)
 BIN:=tuya_daemon
 SRC:=$(wildcard *.c)
 
-LIBS:=-llink_core -lplatform_port -lmiddleware_implementation -lutils_modules -lubus -lubox -lblobmsg_json
+LIBS:=-llink_core -lplatform_port -lmiddleware_implementation -lutils_modules #-lubus -lubox -lblobmsg_json
 
 .PHONY: all clean
 

@@ -1,6 +1,5 @@
-#include <utils/signal_handler.h>
+#include <signal_handler.h>
 
-extern int is_daemon;
 volatile sig_atomic_t running = 1;
 
 void signal_handler(int sig)

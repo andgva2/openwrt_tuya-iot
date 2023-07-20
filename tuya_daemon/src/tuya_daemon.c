@@ -1,6 +1,5 @@
-#include <sdk/tuyalink_core.h>
-#include <sdk/tuya_log.h>
-#include <sdk/tuya_cacert.h>
+#include <tuyalink_core.h>
+#include <tuya_log.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,14 +8,12 @@
 #include <syslog.h>
 
 #include <daemonize.h>
-#include <argp.h>
+#include <argp_utils.h>
 #include <tuya_utils.h>
 #include <signal_handler.h>
+#include <argp.h>
 
 tuya_mqtt_context_t client_instance;
-
-extern int is_daemon;
-extern volatile sig_atomic_t running;
 
 int main(int argc, char **argv)
 {
@@ -36,7 +33,7 @@ int main(int argc, char **argv)
 
 	const char *deviceId	 = arguments.device_id;
 	const char *deviceSecret = arguments.secret;
-	const char *productId	 = arguments.product_id;
+	//const char *productId	 = arguments.product_id;
 	is_daemon		 = arguments.daemon_flag;
 
 	// return value

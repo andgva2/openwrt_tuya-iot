@@ -1,8 +1,4 @@
-#include <utils/tuya_utils.h>
-
-extern int is_daemon;
-extern const char tuya_cacert_pem[];
-extern const size_t tuya_cacert_pem_size;
+#include <tuya_utils.h>
 
 void on_connected(tuya_mqtt_context_t *context, void *user_data)
 {
@@ -39,25 +35,13 @@ void on_messages(tuya_mqtt_context_t *context, void *user_data, const tuyalink_m
 	}
 }
 
-void send_data(tuya_mqtt_context_t *context, void *user_data)
+void send_data(tuya_mqtt_context_t *context, char *user_data)
 {
-	char data[300];
-	struct sysinfo info;
+	char template[1024];
 
-	if (sysinfo(&info) != 0) {
-		TY_LOGW("sysinfo could not gather system information");
-		if (is_daemon) {
-			syslog(LOG_USER | LOG_WARNING, "sysinfo could not gather system information");
-		}
-	} else {
-		float free_ram	= (info.freeram * 1.0) / 1024 / 1024;
-		float total_ram = (info.totalram * 1.0) / 1024 / 1024;
+	snprintf(template, sizeof(template), "{\"device_status\": {\"value\": \"%s\"}}", user_data);
 
-		snprintf(data, sizeof(data), "{\"device_status\": {\"value\": \"Ram usage: %.2fMB/%.2fMB\"}}",
-			 free_ram, total_ram);
-
-		tuyalink_thing_property_report_with_ack(context, NULL, data);
-	}
+	tuyalink_thing_property_report_with_ack(context, NULL, template);
 }
 
 int tuya_init(tuya_mqtt_context_t *client, const char *deviceId, const char *deviceSecret)
@@ -65,7 +49,7 @@ int tuya_init(tuya_mqtt_context_t *client, const char *deviceId, const char *dev
 	int ret = tuya_mqtt_init(client, &(const tuya_mqtt_config_t){ .host	  = "m1.tuyacn.com",
 								      .port	  = 8883,
 								      .cacert	  = tuya_cacert_pem,
-								      .cacert_len = tuya_cacert_pem_size,
+								      .cacert_len = (size_t)1368UL,
 								      .device_id  = deviceId,
 								      .device_secret = deviceSecret,
 								      .keepalive     = 100,
@@ -132,6 +116,17 @@ int tuya_loop(tuya_mqtt_context_t *client)
 {	
         int ret;
         ret = tuya_mqtt_loop(client);
-	send_data(client, NULL);
+
+        char data[992];
+        struct sysinfo info;
+	if (sysinfo(&info) != 0) {
+		TY_LOGE("sysinfo failed");
+		if (is_daemon) {
+			syslog(LOG_USER | LOG_ERR, "sysinfo failed");
+		}
+	}
+        
+	snprintf(data, sizeof(data), "Uptime: %ld", info.uptime);
+	send_data(client, data);
         return ret;
 }

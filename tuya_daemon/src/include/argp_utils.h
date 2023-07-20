@@ -49,20 +49,14 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
 			arguments->daemon_flag = 1;
 		} else {
 			/* Invalid daemon flag, default fallback */
-			argp_usage(state);
+			//argp_usage(state);
 		}
 		break;
-	// case ARGP_KEY_ARG:
-	// 	if (state->arg_num >= 3)
-	// 		/* Too many arguments. */
-	// 		argp_usage(state);
-
-	// 	break;
 	case ARGP_KEY_END:
 		if (arguments->device_id == NULL || arguments->secret == NULL ||
 		    arguments->product_id == NULL) {
 			/* Not all required arguments provided */
-			argp_failure(state, 1, 0, "required -p, -d and -s. See --help for more information");
+			//argp_failure(state, 1, 0, "required -p, -d and -s. See --help for more information");
 		}
 		break;
 
