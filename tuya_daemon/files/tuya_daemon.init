@@ -1,0 +1,41 @@
+#!/bin/sh /etc/rc.common
+
+USE_PROCD=1
+
+start_setvice()
+{
+	local enabled
+	local device_id
+	local device_secret
+	local product_id
+	
+	config load 'tuya_daemon'
+	config_get enabled tuya_daemon_sct 'enable' 0
+	config_get device_id tuya_daemon_sct 'device_id' ''
+	config_get device_secret tuya_daemon_sct 'device_secret' ''
+	config_get product_id tuya_daemon_sct 'product_id' ''
+	
+	if [ "$enabled" -eq 1 ]; then
+		procd_open_instance
+		
+		procd_set_param command /usr/bin/tuya_daemon
+		procd_append_param command -d "$device_id" -s "$device_secret" -p "$product_id"
+		
+		procd_set_param pidfile /var/run/tuya_daemon.pid
+		procd_set_param file /etc/config/tuya_daemon
+		
+		procd_close_instance
+	fi
+	
+}
+
+service_triggers()
+{
+	procd_add_reload_trigger "tuya_daemon"
+}
+
+service_reload()
+{
+	stop
+	start
+}

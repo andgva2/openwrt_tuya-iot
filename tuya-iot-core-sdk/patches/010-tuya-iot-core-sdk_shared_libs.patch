@@ -1,0 +1,66 @@
+Index: tuya-iot-core-sdk-1.0.0/middleware/CMakeLists.txt
+===================================================================
+--- tuya-iot-core-sdk-1.0.0.orig/middleware/CMakeLists.txt
++++ tuya-iot-core-sdk-1.0.0/middleware/CMakeLists.txt
+@@ -2,7 +2,7 @@ include( ${LIBRARIES_DIR}/coreHTTP/httpF
+ include( ${LIBRARIES_DIR}/coreMQTT/mqttFilePaths.cmake )
+ 
+ # Create target for POSIX implementation of reconnect logic.
+-add_library( middleware_implementation STATIC
++add_library( middleware_implementation SHARED
+                 ${MQTT_SOURCES}
+                 ${MQTT_SERIALIZER_SOURCES}
+                 ${HTTP_SOURCES}
+Index: tuya-iot-core-sdk-1.0.0/platform/posix/CMakeLists.txt
+===================================================================
+--- tuya-iot-core-sdk-1.0.0.orig/platform/posix/CMakeLists.txt
++++ tuya-iot-core-sdk-1.0.0/platform/posix/CMakeLists.txt
+@@ -1,7 +1,7 @@
+ include( ${LIBRARIES_DIR}/mbedtlsFilePaths.cmake )
+ 
+ # Create target for POSIX implementation of reconnect logic.
+-add_library( platform_port STATIC
++add_library( platform_port SHARED
+                "mbedtls_sockets_wrapper.c"
+                "network_wrapper.c"
+                "system_wrapper.c"
+Index: tuya-iot-core-sdk-1.0.0/src/CMakeLists.txt
+===================================================================
+--- tuya-iot-core-sdk-1.0.0.orig/src/CMakeLists.txt
++++ tuya-iot-core-sdk-1.0.0/src/CMakeLists.txt
+@@ -3,7 +3,7 @@ include( ${LIBRARIES_DIR}/coreJSON/jsonF
+ include( ${LINKSDK_DIRS}/tuyaFilePaths.cmake )
+ 
+ # Add a library with the above sources
+-add_library( link_core STATIC
++add_library( link_core SHARED
+     ${LINK_SDK_SOURCES}
+     ${JSON_SOURCES}
+ )
+@@ -31,4 +31,4 @@ target_link_libraries( link_core
+ # file(COPY ${JSON_SOURCES} DESTINATION ${PROJECT_SOURCE_DIR}/output/tuya_linksdk_c/src)
+ 
+ # file(COPY ${OUTPUT_INCLUDE} DESTINATION ${PROJECT_SOURCE_DIR}/output/tuya_linksdk_c/include)
+-# file(COPY ${OUTPUT_INTERNAL_INC} DESTINATION ${PROJECT_SOURCE_DIR}/output/tuya_linksdk_c/src/internal_inc)
+\ No newline at end of file
++# file(COPY ${OUTPUT_INTERNAL_INC} DESTINATION ${PROJECT_SOURCE_DIR}/output/tuya_linksdk_c/src/internal_inc)
+Index: tuya-iot-core-sdk-1.0.0/utils/CMakeLists.txt
+===================================================================
+--- tuya-iot-core-sdk-1.0.0.orig/utils/CMakeLists.txt
++++ tuya-iot-core-sdk-1.0.0/utils/CMakeLists.txt
+@@ -2,7 +2,7 @@
+ FILE(GLOB UTILS_SOURCES *.c)
+ 
+ # Add a library with the above sources
+-add_library( utils_modules STATIC
++add_library( utils_modules SHARED
+     ${UTILS_SOURCES}
+ )
+ 
+@@ -10,4 +10,4 @@ target_include_directories( utils_module
+     PUBLIC 
+     ${CMAKE_CURRENT_LIST_DIR}
+     ${INTERFACE_DIRS}
+-)
+\ No newline at end of file
++)
