@@ -1,5 +1,10 @@
+#ifndef ARG_UTILS_H
+#define ARG_UTILS_H
+
 #include <argp.h>
 #include <string.h>
+
+static error_t parse_opt(int key, char *arg, struct argp_state *state);
 
 const char *argp_program_version     = "Developement v0.99";
 const char *argp_program_bug_address = "<bug-gnu-utils@gnu.org>";
@@ -43,20 +48,21 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
 		arguments->product_id = arg;
 		break;
 	case 'D':
+		arguments->daemon_flag = 1;
 		if (strcmp(arg, "0") == 0) {
 			arguments->daemon_flag = 0;
 		} else if (strcmp(arg, "1") == 0) {
 			arguments->daemon_flag = 1;
 		} else {
 			/* Invalid daemon flag, default fallback */
-			//argp_usage(state);
+			argp_usage(state);
 		}
 		break;
 	case ARGP_KEY_END:
 		if (arguments->device_id == NULL || arguments->secret == NULL ||
 		    arguments->product_id == NULL) {
 			/* Not all required arguments provided */
-			//argp_failure(state, 1, 0, "required -p, -d and -s. See --help for more information");
+			argp_failure(state, 1, 0, "required -p, -d and -s. See --help for more information");
 		}
 		break;
 
@@ -68,4 +74,4 @@ static error_t parse_opt(int key, char *arg, struct argp_state *state)
 
 static struct argp argp = { options, parse_opt, args_doc, doc };
 
-static error_t parse_opt(int key, char *arg, struct argp_state *state);
+#endif

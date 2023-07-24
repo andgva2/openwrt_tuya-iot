@@ -9,7 +9,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/tuya_daemon
 	CATEGORY:=Tuya
 	TITLE:=tuya_daemon
-	DEPENDS:=+tuya-iot-core-sdk
+	DEPENDS:=+tuya-iot-core-sdk +libubus +libubox +libblobmsg-json
 endef
 
 define Package/tuya_daemon/description

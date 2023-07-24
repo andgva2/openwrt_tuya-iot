@@ -64,3 +64,14 @@ Index: tuya-iot-core-sdk-1.0.0/utils/CMakeLists.txt
 -)
 \ No newline at end of file
 +)
+Index: tuya-iot-core-sdk-1.0.0/CMakeLists.txt
+===================================================================
+--- tuya-iot-core-sdk-1.0.0.orig/CMakeLists.txt
++++ tuya-iot-core-sdk-1.0.0/CMakeLists.txt
+@@ -91,3 +91,6 @@ message(STATUS " .. Build utility tools
+ message(STATUS " .. Disable PNG support  ........ = ${WITHOUT_PNG}"           )
+ message(STATUS " .. Installation prefix ......... = ${CMAKE_INSTALL_PREFIX}"  )
+ message(STATUS "------------------------------------------------------------ ")
++
++
++install(CODE "MESSAGE(\"Sample install message.\")")

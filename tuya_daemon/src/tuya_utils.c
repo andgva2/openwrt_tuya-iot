@@ -2,34 +2,21 @@
 
 void on_connected(tuya_mqtt_context_t *context, void *user_data)
 {
-	TY_LOGI("on connected");
-	if (is_daemon) {
-		syslog(LOG_USER | LOG_INFO, "on connected");
-	}
+	syslog(LOG_USER | LOG_INFO, "on connected");
 }
 
 void on_disconnect(tuya_mqtt_context_t *context, void *user_data)
 {
-	TY_LOGI("on disconnect");
-	if (is_daemon) {
-		syslog(LOG_USER | LOG_INFO, "on disconnect");
-	}
+	syslog(LOG_USER | LOG_INFO, "on disconnect");
 }
 
 void on_messages(tuya_mqtt_context_t *context, void *user_data, const tuyalink_message_t *msg)
 {
-	TY_LOGI("on message id:%s, type:%d, code:%d", msg->msgid, msg->type, msg->code);
-	if (is_daemon) {
-		syslog(LOG_USER | LOG_INFO, "on message id:%s, type:%d, code:%d", msg->msgid, msg->type,
-		       msg->code);
-	}
 	switch (msg->type) {
 	case THING_TYPE_PROPERTY_REPORT_RSP:
-		syslog(LOG_INFO, "Property report resonse: %s", msg->data_string);
+		syslog(LOG_INFO, "Property report sent and aknowledged by the cloud.");
 		break;
 
-	case THING_TYPE_PROPERTY_SET:
-		syslog(LOG_INFO, "Device property set: %s", msg->data_string);
 	default:
 		break;
 	}
@@ -49,7 +36,7 @@ int tuya_init(tuya_mqtt_context_t *client, const char *deviceId, const char *dev
 	int ret = tuya_mqtt_init(client, &(const tuya_mqtt_config_t){ .host	  = "m1.tuyacn.com",
 								      .port	  = 8883,
 								      .cacert	  = tuya_cacert_pem,
-								      .cacert_len = (size_t)1368UL,
+								      .cacert_len = sizeof(tuya_cacert_pem),
 								      .device_id  = deviceId,
 								      .device_secret = deviceSecret,
 								      .keepalive     = 100,
@@ -59,22 +46,22 @@ int tuya_init(tuya_mqtt_context_t *client, const char *deviceId, const char *dev
 								      .on_messages   = on_messages });
 
 	if (ret) {
-		TY_LOGE("tuya_mqtt_init failed");
-		if (is_daemon) {
-			syslog(LOG_USER | LOG_ERR, "tuya_mqtt_init failed");
-		}
+		syslog(LOG_USER | LOG_ERR, "tuya_mqtt_init failed");
+
 		return ret;
 	}
+
+	syslog(LOG_USER | LOG_INFO, "tuya_mqtt_init success");
 
 	ret = tuya_mqtt_connect(client);
 
 	if (ret) {
-		TY_LOGE("tuya_mqtt_connect failed");
-		if (is_daemon) {
-			syslog(LOG_USER | LOG_ERR, "tuya_mqtt_connect failed");
-		}
+		syslog(LOG_USER | LOG_ERR, "tuya_mqtt_connect failed");
+
 		return ret;
 	}
+
+	syslog(LOG_USER | LOG_INFO, "tuya_mqtt_connect success");
 
 	return OPRT_OK;
 }
@@ -84,49 +71,37 @@ int tuya_deinit(tuya_mqtt_context_t *client)
 	int ret;
 	ret = tuya_mqtt_disconnect(client);
 	if (ret) {
-		TY_LOGE("tuya_mqtt_disconnect failed");
-		if (is_daemon) {
-			syslog(LOG_USER | LOG_ERR, "tuya_mqtt_disconnect failed");
-		}
+		syslog(LOG_USER | LOG_ERR, "tuya_mqtt_disconnect failed");
+
 	} else {
-		TY_LOGI("tuya_mqtt_disconnect success");
-		if (is_daemon) {
-			syslog(LOG_USER | LOG_INFO, "tuya_mqtt_disconnect success");
-		}
+		syslog(LOG_USER | LOG_INFO, "tuya_mqtt_disconnect success");
 	}
 	if (ret) {
-		TY_LOGE("tuya_mqtt_deinit failed");
-		if (is_daemon) {
-			syslog(LOG_USER | LOG_ERR, "tuya_mqtt_deinit failed");
-		}
+		syslog(LOG_USER | LOG_ERR, "tuya_mqtt_deinit failed");
+
 	} else {
-		TY_LOGI("tuya_mqtt_deinit success");
-		if (is_daemon) {
-			syslog(LOG_USER | LOG_INFO, "tuya_mqtt_deinit success");
-		}
+		syslog(LOG_USER | LOG_INFO, "tuya_mqtt_deinit success");
 	}
-	if (is_daemon) {
-		closelog();
-	}
+
+	closelog();
 
 	return ret;
 }
 
-int tuya_loop(tuya_mqtt_context_t *client)
-{	
-        int ret;
-        ret = tuya_mqtt_loop(client);
+int tuya_loop(tuya_mqtt_context_t *client, struct MemData user_data)
+{
+	int ret;
 
-        char data[992];
-        struct sysinfo info;
-	if (sysinfo(&info) != 0) {
-		TY_LOGE("sysinfo failed");
-		if (is_daemon) {
-			syslog(LOG_USER | LOG_ERR, "sysinfo failed");
-		}
+	ret = tuya_mqtt_loop(client);
+	if (ret) {
+		syslog(LOG_USER | LOG_INFO, "connection failed");
+		return ret;
 	}
-        
-	snprintf(data, sizeof(data), "Uptime: %ld", info.uptime);
+
+	char data[992];
+	snprintf(data, sizeof(data), "Memory usage: %.2fMB/%.2fMB", (user_data.total - user_data.free) / 1024 / 1024.0,
+		 user_data.total / 1024 / 1024.0);
+
 	send_data(client, data);
-        return ret;
+	return OPRT_OK;
 }
