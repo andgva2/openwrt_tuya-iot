@@ -11,17 +11,19 @@
 #include <sys/sysinfo.h>
 #include <syslog.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <daemonize.h>
 #include <ubus_utils.h>
 
-void on_connected(tuya_mqtt_context_t *context, void *user_data);
-void on_disconnect(tuya_mqtt_context_t *context, void *user_data);
-void on_messages(tuya_mqtt_context_t *context, void *user_data, const tuyalink_message_t *msg);
-void send_data(tuya_mqtt_context_t *context, char *user_data);
+#include <libubox/blobmsg_json.h>
+#include <libubus.h>
+#include <jansson.h>
+
+void signal_handler(int sig);
 int tuya_init(tuya_mqtt_context_t *client, const char *deviceId, const char *deviceSecret);
 int tuya_deinit(tuya_mqtt_context_t *client);
-int tuya_loop(tuya_mqtt_context_t *client, struct MemData user_data);
+int tuya_loop(tuya_mqtt_context_t *client);
 
 extern const char tuya_cacert_pem[1368];
 

@@ -13,22 +13,6 @@
 #include <ubus_utils.h>
 #include <tuya_utils.h>
 
-#include <libubox/blobmsg_json.h>
-#include <libubus.h>
-
-volatile sig_atomic_t running = 1;
-
-void signal_handler(int sig)
-{
-	if (sig != SIGTERM && sig != SIGINT) {
-		syslog(LOG_USER | LOG_ERROR, "signal %d handling error", sig);
-		return;
-	}
-
-	syslog(LOG_USER | LOG_INFO, "signal %d received, stopping", sig);
-	running = 0;
-}
-
 tuya_mqtt_context_t client_instance;
 
 int main(int argc, char **argv)
@@ -80,29 +64,10 @@ int main(int argc, char **argv)
 		return ret;
 	}
 
-	// ubus initailization
-	struct ubus_context *ctx;
-	uint32_t id;
-
-	struct MemData memory = { 0 };
-
-	ctx = ubus_connect(NULL);
-	if (!ctx) {
-		syslog(LOG_USER | LOG_ERROR, "failed to connect to ubus");
-		return -1;
-	}
-
 	// mqtt loop
-	while (running) {
-		if (ubus_lookup_id(ctx, "system", &id) ||
-		    ubus_invoke(ctx, id, "info", NULL, board_cb, &memory, 3000)) {
-			syslog(LOG_USER | LOG_ERR, "cannot request memory info from procd");
-			break;
-		}
-		ret = tuya_loop(client, memory);
-	}
+	ret = tuya_loop(client);
 
+	// deinitialize mqtt client
 	tuya_deinit(client);
-	ubus_free(ctx);
 	return ret;
 }
