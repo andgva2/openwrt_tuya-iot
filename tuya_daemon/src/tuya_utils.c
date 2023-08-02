@@ -395,13 +395,14 @@ int tuya_deinit(tuya_mqtt_context_t *client)
 		syslog(LOG_USER | LOG_INFO, "tuya_mqtt_disconnect success");
 		//TY_LOGI("tuya_mqtt_disconnect success");
 	}
+	ret = tuya_mqtt_deinit(client);
 	if (ret) {
 		syslog(LOG_USER | LOG_ERR, "tuya_mqtt_deinit failed");
 		//TY_LOGE("tuya_mqtt_deinit failed");
 	} else {
 		syslog(LOG_USER | LOG_INFO, "tuya_mqtt_deinit success");
 		//TY_LOGI("tuya_mqtt_deinit success");
-	}
+	}	
 
 	closelog();
 
@@ -439,5 +440,6 @@ int tuya_loop(tuya_mqtt_context_t *client)
 
 	// ubus deinitialization
 	ubus_deinit(&ctx);
+
 	return OPRT_OK;
 }

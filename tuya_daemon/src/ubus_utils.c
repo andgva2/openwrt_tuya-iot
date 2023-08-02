@@ -101,7 +101,7 @@ size:;
 int ubus_init(struct ubus_context **ctx)
 {
 	int ret;
-	struct ubus_object tuya_daemon_client_object;
+	struct ubus_object tuya_daemon_client_object = { 0 };
 
 	*ctx = ubus_connect(NULL);
 	if (!*ctx) {
