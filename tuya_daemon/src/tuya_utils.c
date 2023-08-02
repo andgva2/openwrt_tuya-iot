@@ -31,6 +31,10 @@ void on_disconnect(tuya_mqtt_context_t *context, void *user_data)
 {
 	syslog(LOG_USER | LOG_INFO, "on disconnect");
 	//TY_LOGI("on disconnect");
+
+	char execute_topic[64];
+	sprintf(execute_topic, "tylink/%s/thing/action/execute", context->config.device_id);
+	mqtt_client_unsubscribe(context->mqtt_client, execute_topic, MQTT_QOS_1);
 }
 
 int tuyalink_thing_action_execute_response(tuya_mqtt_context_t *context, const char *device_id,
@@ -75,6 +79,8 @@ char *execute(char *payload, char *action, int *status)
 		*status = 1;
 		syslog(LOG_USER | LOG_ERR, "Invalid JSON (execute)");
 		//TY_LOGE("Invalid JSON (execute)");
+
+		cJSON_Delete(root);
 		return "Invalid JSON";
 	}
 
@@ -83,6 +89,8 @@ char *execute(char *payload, char *action, int *status)
 		*status = 1;
 		syslog(LOG_USER | LOG_ERR, "Invalid inputParams (execute)");
 		//TY_LOGE("Invalid inputParams (execute)");
+
+		cJSON_Delete(root);
 		return "Invalid inputParams";
 	}
 
@@ -93,6 +101,8 @@ char *execute(char *payload, char *action, int *status)
 			*status = 1;
 			syslog(LOG_USER | LOG_ERR, "Invalid pin (execute)");
 			//TY_LOGE("Invalid pin (execute)");
+
+			cJSON_Delete(root);
 			return "Invalid pin";
 		}
 
@@ -101,6 +111,8 @@ char *execute(char *payload, char *action, int *status)
 			*status = 1;
 			syslog(LOG_USER | LOG_ERR, "Invalid port (execute)");
 			//TY_LOGE("Invalid port (execute)");
+
+			cJSON_Delete(root);
 			return "Invalid port";
 		}
 
@@ -112,6 +124,8 @@ char *execute(char *payload, char *action, int *status)
 		ubus_invoke(ctx, id, action, b.head, set_cb, &response, 3000);
 
 		*status = response.status;
+
+		cJSON_Delete(root);
 		return response.message;
 	} else {
 		char *port_list[100];
@@ -125,10 +139,14 @@ char *execute(char *payload, char *action, int *status)
 		free(port_list[0]);
 
 		if (size == 0) {
+			cJSON_Delete(root);
+
 			return port_list_str;
 		} else if (size == 1) {
 			strcat(port_list_str, port_list[1]);
 			free(port_list[1]);
+
+			cJSON_Delete(root);
 			return port_list_str;
 		} else {
 			strcat(port_list_str, port_list[1]);
@@ -138,6 +156,8 @@ char *execute(char *payload, char *action, int *status)
 				strcat(port_list_str, port_list[i]);
 				free(port_list[i]);
 			}
+
+			cJSON_Delete(root);
 			return port_list_str;
 		}
 	}
@@ -151,6 +171,8 @@ char *action_validation(char *payload, char *action, int *status)
 		*status = 1;
 		syslog(LOG_USER | LOG_INFO, "Invalid JSON (action_validation)");
 		//TY_LOGI("Invalid JSON (action_validation)");
+
+		cJSON_Delete(root);
 		return "Invalid JSON";
 	}
 
@@ -159,6 +181,8 @@ char *action_validation(char *payload, char *action, int *status)
 		*status = 1;
 		syslog(LOG_USER | LOG_INFO, "Invalid actionCode (action_validation)");
 		//TY_LOGI("Invalid actionCode (action_validation)");
+
+		cJSON_Delete(root);
 		return "Invalid actionCode";
 	}
 
@@ -167,6 +191,8 @@ char *action_validation(char *payload, char *action, int *status)
 		*status = 1;
 		syslog(LOG_USER | LOG_INFO, "Invalid inputParams (action_validation)");
 		//TY_LOGI("Invalid inputParams (action_validation)");
+
+		cJSON_Delete(root);
 		return "Invalid inputParams";
 	}
 
@@ -178,6 +204,8 @@ char *action_validation(char *payload, char *action, int *status)
 			*status = 1;
 			syslog(LOG_USER | LOG_INFO, "Invalid pin (action_validation)");
 			//TY_LOGI("Invalid pin (action_validation)");
+
+			cJSON_Delete(root);
 			return "Invalid pin";
 		}
 
@@ -186,6 +214,8 @@ char *action_validation(char *payload, char *action, int *status)
 			*status = 1;
 			syslog(LOG_USER | LOG_INFO, "Invalid port (action_validation)");
 			//TY_LOGI("Invalid port (action_validation)");
+
+			cJSON_Delete(root);
 			return "Invalid port";
 		}
 
@@ -205,6 +235,8 @@ char *action_validation(char *payload, char *action, int *status)
 			syslog(LOG_USER | LOG_INFO, "Invalid port (action_validation)");
 			//TY_LOGI("Invalid port (action_validation)");
 			*status = 1;
+
+			cJSON_Delete(root);
 			return "Invalid port";
 		}
 	} else if (strcmp(action, "list_devices") == 0) {
@@ -213,9 +245,12 @@ char *action_validation(char *payload, char *action, int *status)
 		*status = 1;
 		syslog(LOG_USER | LOG_INFO, "Unknown actionCode (action_validation)");
 		//TY_LOGI("Unknown actionCode (action_validation)");
+
+		cJSON_Delete(root);
 		return "Unknown actionCode";
 	}
 
+	cJSON_Delete(root);
 	return "Validation SUCCESS";
 }
 
@@ -225,14 +260,16 @@ char *get_action(char *payload)
 	if (!root) {
 		syslog(LOG_USER | LOG_INFO, "Invalid JSON");
 		//TY_LOGI("Invalid JSON (get_action)");
-		return "";
+
+		goto cleanup;
 	}
 
 	cJSON *action_code = cJSON_GetObjectItem(root, "actionCode");
 	if (!action_code) {
 		syslog(LOG_USER | LOG_INFO, "Invalid actionCode (get_action)");
 		//TY_LOGI("Invalid actionCode (get_action)");
-		return "";
+
+		goto cleanup;
 	}
 
 	/// Check if actionCode is valid
@@ -241,10 +278,16 @@ char *get_action(char *payload)
 	    strcmp(action_code->valuestring, "list_devices") != 0) {
 		syslog(LOG_USER | LOG_INFO, "Unknown actionCode (get_action)");
 		//TY_LOGI("Unknown actionCode (get_action)");
-		return "";
+
+		goto cleanup;
 	} else {
+		cJSON_Delete(root);
 		return action_code->valuestring;
 	}
+
+cleanup:;
+	cJSON_Delete(root);
+	return "";
 }
 
 int execute_action(tuya_mqtt_context_t *context, char *payload)
