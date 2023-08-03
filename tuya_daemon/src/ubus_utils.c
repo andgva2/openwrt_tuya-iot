@@ -6,6 +6,7 @@ enum {
 };
 
 enum {
+	DEVICE_NAME,
 	DEVICE_PORT,
 	DEVICE_VID,
 	DEVICE_PID,
@@ -19,10 +20,11 @@ enum {
 };
 
 static const struct blobmsg_policy devices_policy[__DEVICES_MAX] = {
-	[DEVICES] = { .name = "Devices", .type = BLOBMSG_TYPE_TABLE },
+	[DEVICES] = { .name = "Devices", .type = BLOBMSG_TYPE_ARRAY },
 };
 
 static const struct blobmsg_policy device_info_policy[__DEVICE_INFO_MAX] = {
+	[DEVICE_NAME] = { .name = "Name", .type = BLOBMSG_TYPE_STRING },
 	[DEVICE_PORT] = { .name = "Port", .type = BLOBMSG_TYPE_STRING },
 	[DEVICE_VID]  = { .name = "Vendor ID", .type = BLOBMSG_TYPE_STRING },
 	[DEVICE_PID]  = { .name = "Product ID", .type = BLOBMSG_TYPE_STRING },

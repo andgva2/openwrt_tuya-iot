@@ -60,15 +60,13 @@ void action_response(tuya_mqtt_context_t *context, int response_status, char *re
 		snprintf(payload, sizeof(payload),
 			 "{\"actionCode\": \"%s\", \"outputParams\": {\"response\": %d, \"msg\": \"%s\"}}",
 			 action_code, response_status, response_message);
+		tuyalink_thing_action_execute_response(context, NULL, payload);
 	} else {
 		/// list_devices action
 		/// Send action response (e.g. {"actionCode":"String","outputParams":{"device_list":"String"}}
-		snprintf(payload, sizeof(payload),
-			 "{\"actionCode\": \"%s\", \"outputParams\": {\"device_list\": \"%s\"}}", action_code,
-			 response_message);
+		snprintf(payload, sizeof(payload), "{\"port_list\":[%s]}", response_message);
+		tuyalink_thing_property_report(context, NULL, payload);
 	}
-
-	tuyalink_thing_action_execute_response(context, NULL, payload);
 }
 
 char *execute(char *payload, char *action, int *status)
@@ -148,11 +146,15 @@ char *execute(char *payload, char *action, int *status)
 
 		for (int i = 0; i < port_list.port_count; i++) {
 			if (i + 1 == port_list.port_count) {
+				strcat(port_list_str, "\"");
 				strcat(port_list_str, port_list.port_list[i]);
+				strcat(port_list_str, "\"");
 				free(port_list.port_list[i]);
 			} else {
+				strcat(port_list_str, "\"");
 				strcat(port_list_str, port_list.port_list[i]);
-				strcat(port_list_str, ", ");
+				strcat(port_list_str, "\"");
+				strcat(port_list_str, ",");
 				free(port_list.port_list[i]);
 			}
 		}
@@ -327,7 +329,7 @@ int execute_action(tuya_mqtt_context_t *context, char *payload)
 	free(valid_resp_msg);
 
 	char *exec_resp_msg = NULL;
-	exec_resp_msg = execute(payload, action, &status);
+	exec_resp_msg	    = execute(payload, action, &status);
 
 	syslog(LOG_USER | LOG_INFO, "Action execution: %s", exec_resp_msg);
 	syslog(LOG_USER | LOG_INFO, "Action execution status: %d", status);
