@@ -1,61 +1,5 @@
 #include <ubus_utils.h>
 
-/*
-// ------------------------------------------------------------------------------------
-
-static struct ubus_subscriber test_event;
-
-enum {
-	WATCH_ID,
-	WATCH_COUNTER,
-	__WATCH_MAX,
-};
-
-static void test_handle_remove(struct ubus_context *ctx, struct ubus_subscriber *s, uint32_t id)
-{
-	fprintf(stderr, "Object %08x went away\n", id);
-	syslog(LOG_USER | LOG_INFO, "Object %08x went away\n", id);
-}
-
-static int test_notify(struct ubus_context *ctx, struct ubus_object *obj, struct ubus_request_data *req,
-		       const char *method, struct blob_attr *msg)
-{
-#if 0
-	char *str;
-
-	str = blobmsg_format_json(msg, true);
-	fprintf(stderr, "Received notification '%s': %s\n", method, str);
-	free(str);
-#endif
-
-	return 0;
-}
-
-static const struct blobmsg_policy watch_policy[__WATCH_MAX] = {
-	[WATCH_ID]	= { .name = "id", .type = BLOBMSG_TYPE_INT32 },
-	[WATCH_COUNTER] = { .name = "counter", .type = BLOBMSG_TYPE_INT32 },
-};
-
-static int test_watch(struct ubus_context *ctx, struct ubus_object *obj, struct ubus_request_data *req,
-		      const char *method, struct blob_attr *msg)
-{
-	struct blob_attr *tb[__WATCH_MAX];
-	int ret;
-
-	blobmsg_parse(watch_policy, __WATCH_MAX, tb, blob_data(msg), blob_len(msg));
-	if (!tb[WATCH_ID])
-		return UBUS_STATUS_INVALID_ARGUMENT;
-
-	test_event.remove_cb = test_handle_remove;
-	test_event.cb	     = test_notify;
-	ret		     = ubus_subscribe(ctx, &test_event, blobmsg_get_u32(tb[WATCH_ID]));
-	fprintf(stderr, "Watching object %08x: %s\n", blobmsg_get_u32(tb[WATCH_ID]), ubus_strerror(ret));
-	return ret;
-}
-
-// ------------------------------------------------------------------------------------
-*/
-
 static int device_list_cb(struct ubus_context *ctx, struct ubus_object *obj, struct ubus_request_data *req,
 			  const char *method, struct blob_attr *msg);
 
@@ -99,7 +43,7 @@ static int device_list_cb(struct ubus_context *ctx, struct ubus_object *obj, str
 	struct blob_buf buf	  = {};
 	blob_buf_init(&buf, 0);
 
-	void *list_cookie = blobmsg_open_table(&buf, "Devices");
+	void *list_cookie = blobmsg_open_array(&buf, "Devices");
 	deviceList	  = get_device_list();
 	if (deviceList == NULL) {
 		goto cleanup;
@@ -108,8 +52,8 @@ static int device_list_cb(struct ubus_context *ctx, struct ubus_object *obj, str
 	struct Device *current = deviceList;
 
 	while (current != NULL) {
-		char *device_name   = get_device_name(&current);
-		void *device_cookie = blobmsg_open_table(&buf, device_name);
+		void *device_cookie = blobmsg_open_table(&buf, NULL);
+		blobmsg_add_string(&buf, "Name", get_device_name(&current));
 		blobmsg_add_string(&buf, "Port", current->port);
 		blobmsg_add_string(&buf, "Vendor ID", current->vid);
 		blobmsg_add_string(&buf, "Product ID", current->pid);
@@ -119,7 +63,7 @@ static int device_list_cb(struct ubus_context *ctx, struct ubus_object *obj, str
 	}
 
 cleanup:;
-	blobmsg_close_table(&buf, list_cookie);
+	blobmsg_close_array(&buf, list_cookie);
 	ubus_send_reply(ctx, req, buf.head);
 	free_device_list(&deviceList);
 	blob_buf_free(&buf);
@@ -317,14 +261,6 @@ void server_main(struct ubus_context *ctx)
 		fprintf(stderr, "Failed to add object: %s\n", ubus_strerror(ret));
 		syslog(LOG_USER | LOG_ERR, "Failed to add object: %s\n", ubus_strerror(ret));
 	}
-
-	/*
-	ret = ubus_register_subscriber(ctx, &test_event);
-	if (ret) {
-		fprintf(stderr, "Failed to add watch handler: %s\n", ubus_strerror(ret));
-		syslog(LOG_USER | LOG_ERR, "Failed to add watch handler: %s\n", ubus_strerror(ret));
-	}
-	*/
 
 	uloop_run();
 }
