@@ -35,6 +35,7 @@ static const struct blobmsg_policy set_response_policy[__SET_RESPONSE_MAX] = {
 
 void set_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 {
+	struct set_resp *response = (struct set_resp *)req->priv;
 	struct blob_attr *tb[__SET_RESPONSE_MAX];
 
 	blobmsg_parse(set_response_policy, __SET_RESPONSE_MAX, tb, blob_data(msg), blob_len(msg));
@@ -45,15 +46,20 @@ void set_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 		return;
 	}
 
-	struct set_resp *response = (struct set_resp *)req->priv;
-
 	response->status  = blobmsg_get_u32(tb[SET_RESPONSE]);
 	response->message = blobmsg_get_string(tb[SET_RESPONSE_MSG]);
 }
 
 void list_devices_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 {
-	char **port_list = (char **)req->priv;
+	struct device_port *port_list = (struct device_port *)req->priv;
+	port_list->port_list	      = malloc(16 * sizeof(*port_list->port_list));
+	if (port_list->port_list == NULL) {
+		syslog(LOG_USER | LOG_ERR, "Failed to allocate memory for port list");
+		//TY_LOGE("Failed to allocate memory for port list");
+		return;
+	}
+
 	struct blob_attr *tb[__DEVICES_MAX];
 
 	blobmsg_parse(devices_policy, __DEVICES_MAX, tb, blob_data(msg), blob_len(msg));
@@ -84,18 +90,20 @@ void list_devices_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 
 			if (blobmsg_type(dev_cur) == BLOBMSG_TYPE_STRING &&
 			    strcmp(blobmsg_name(dev_cur), "Port") == 0) {
-				if (count + 1 == 100) {
-					goto size;
+				port_list->port_list[count] = malloc(sizeof(char) * 32);
+				if (port_list->port_list[count] == NULL) {
+					syslog(LOG_USER | LOG_ERR, "malloc failed");
+					//TY_LOGE("malloc failed");
+					return;
 				}
-				port_list[count + 1] = malloc(sizeof(char) * 30);
-				sprintf(port_list[count], "%s", blobmsg_get_string(dev_cur));
+
+				strcpy(port_list->port_list[count], blobmsg_get_string(dev_cur));
 			}
 		}
 		count++;
 	}
-size:;
-	port_list[0] = malloc(sizeof(char) * 5);
-	sprintf(port_list[0], "%d", count);
+
+	port_list->port_count = count;
 }
 
 int ubus_init(struct ubus_context **ctx)
