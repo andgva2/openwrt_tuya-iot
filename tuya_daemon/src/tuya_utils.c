@@ -131,7 +131,7 @@ char *execute(char *payload, char *action, int *status)
 		char *port_list[100];
 		char *port_list_str = NULL;
 		port_list_str	    = malloc(sizeof(char) * 3001);
-		strcpy(port_list_str, "\0");
+		port_list_str = "";
 
 		ubus_invoke(ctx, id, action, NULL, list_devices_cb, &port_list, 3000);
 
@@ -292,8 +292,14 @@ cleanup:;
 
 int execute_action(tuya_mqtt_context_t *context, char *payload)
 {
-	char *action = get_action(payload);
-	if (strcmp(action, "") == 0) {
+	if(context == NULL || strlen(payload) == 0) {
+		syslog(LOG_USER | LOG_ERR, "NULL passed to execute_action");
+		return 1;
+	}
+
+	char *action = NULL;
+	action = get_action(payload);
+	if (action || strlen(action) == 0) {
 		return 1;
 	}
 

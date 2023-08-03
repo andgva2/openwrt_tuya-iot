@@ -88,14 +88,14 @@ void list_devices_cb(struct ubus_request *req, int type, struct blob_attr *msg)
 					goto size;
 				}
 				port_list[count + 1] = malloc(sizeof(char) * 30);
-				strcpy(port_list[count + 1], blobmsg_get_string(dev_cur));
+				sprintf(port_list[count], "%s", blobmsg_get_string(dev_cur));
 			}
 		}
 		count++;
 	}
 size:;
-	port_list[0] = malloc(sizeof(char) * 4);
-	snprintf(port_list[0], 4, "%d", count);
+	port_list[0] = malloc(sizeof(char) * 5);
+	sprintf(port_list[0], "%d", count);
 }
 
 int ubus_init(struct ubus_context **ctx)
