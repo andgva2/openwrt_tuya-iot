@@ -60,13 +60,13 @@ int main(int argc, char **argv)
 	ret = tuya_init(client, deviceId, deviceSecret);
 
 	if (ret) {
-		tuya_deinit(client);
-		return ret;
+		goto deinit;
 	}
 
 	// mqtt loop
 	ret = tuya_loop(client);
 
+deinit:;
 	// deinitialize mqtt client
 	tuya_deinit(client);
 	return ret;
