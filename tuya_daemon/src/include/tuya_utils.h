@@ -18,7 +18,6 @@
 
 #include <libubox/blobmsg_json.h>
 #include <libubus.h>
-#include <jansson.h>
 
 void signal_handler(int sig);
 int tuya_init(tuya_mqtt_context_t *client, const char *deviceId, const char *deviceSecret);
