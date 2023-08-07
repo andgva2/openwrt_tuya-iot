@@ -21,9 +21,9 @@ static const struct blobmsg_policy set_policy[__SET_MAX] = {
 };
 
 static const struct ubus_method esp_over_ubus_methods[] = {
-	UBUS_METHOD_NOARG("list_devices", device_list_cb), UBUS_METHOD("set_on", set_on_cb, set_policy),
+	UBUS_METHOD_NOARG("list_devices", device_list_cb),
+	UBUS_METHOD("set_on", set_on_cb, set_policy),
 	UBUS_METHOD("set_off", set_off_cb, set_policy),
-	//UBUS_METHOD("watch", test_watch, watch_policy),
 };
 
 static struct ubus_object_type esp_over_ubus_object_type =
@@ -53,7 +53,10 @@ static int device_list_cb(struct ubus_context *ctx, struct ubus_object *obj, str
 
 	while (current != NULL) {
 		void *device_cookie = blobmsg_open_table(&buf, NULL);
-		blobmsg_add_string(&buf, "Name", get_device_name(&current));
+		
+		char *malloced_device_name = get_device_name(&current);
+		blobmsg_add_string(&buf, "Name", malloced_device_name);
+		free(malloced_device_name);
 		blobmsg_add_string(&buf, "Port", current->port);
 		blobmsg_add_string(&buf, "Vendor ID", current->vid);
 		blobmsg_add_string(&buf, "Product ID", current->pid);
@@ -113,7 +116,7 @@ int deserialize_resp_msg(char *serialized_msg, int *resp, char **msg)
 
 	*resp = json_integer_value(response);
 	strcpy(*msg, json_string_value(resp_message));
-
+	json_decref(root);
 exit:;
 	return ret;
 }
@@ -134,7 +137,7 @@ static int set_on_cb(struct ubus_context *ctx, struct ubus_object *obj, struct u
 	struct Device *deviceList = get_device_list();
 	int result		  = 0;
 	if (deviceList == NULL) {
-		goto cleanup;
+		goto cleanup_device_list;
 	}
 
 	struct Device *current = deviceList;
@@ -150,7 +153,7 @@ static int set_on_cb(struct ubus_context *ctx, struct ubus_object *obj, struct u
 	}
 
 	if (is_found == 0) {
-		goto cleanup;
+		goto cleanup_device_list;
 	}
 
 	char message[300];
@@ -162,7 +165,7 @@ static int set_on_cb(struct ubus_context *ctx, struct ubus_object *obj, struct u
 	char *retrieved = receive_from_device(&current, 300);
 	fprintf(stdout, "%s", retrieved);
 	if (strcmp(retrieved, "") == 0) {
-		goto cleanup;
+		goto cleanup_response;
 	}
 
 	int response;
@@ -175,9 +178,10 @@ static int set_on_cb(struct ubus_context *ctx, struct ubus_object *obj, struct u
 
 	ubus_send_reply(ctx, req, buf.head);
 
-cleanup:;
+cleanup_response:;
 	free(retrieved);
 	free(resp_message);
+cleanup_device_list:;
 	blob_buf_free(&buf);
 	free_device_list(&deviceList);
 
@@ -200,7 +204,7 @@ static int set_off_cb(struct ubus_context *ctx, struct ubus_object *obj, struct 
 	struct Device *deviceList = get_device_list();
 	int result		  = 0;
 	if (deviceList == NULL) {
-		goto cleanup;
+		goto cleanup_device_list;
 	}
 
 	struct Device *current = deviceList;
@@ -216,7 +220,7 @@ static int set_off_cb(struct ubus_context *ctx, struct ubus_object *obj, struct 
 	}
 
 	if (is_found == 0) {
-		goto cleanup;
+		goto cleanup_device_list;
 	}
 
 	char message[300];
@@ -230,7 +234,7 @@ static int set_off_cb(struct ubus_context *ctx, struct ubus_object *obj, struct 
 	fprintf(stdout, "%s", retrieved);
 	if (strcmp(retrieved, "") == 0) {
 		result = 1;
-		goto cleanup;
+		goto cleanup_response;
 	}
 
 	int response;
@@ -243,9 +247,10 @@ static int set_off_cb(struct ubus_context *ctx, struct ubus_object *obj, struct 
 
 	ubus_send_reply(ctx, req, buf.head);
 
-cleanup:;
+cleanup_response:;
 	free(retrieved);
 	free(resp_message);
+cleanup_device_list:;
 	blob_buf_free(&buf);
 	free_device_list(&deviceList);
 

@@ -41,8 +41,10 @@ int add_to_list(struct Device **device_list, char *port, char *vid, char *pid)
 
 char *get_device_name(struct Device **device)
 {
+	char *device_name;
 	if ((*device) == NULL) {
-		return "";
+		device_name = strdup("");
+		return device_name;
 	}
 
 	struct sp_port *port;
@@ -50,10 +52,13 @@ char *get_device_name(struct Device **device)
 
 	if (result != SP_OK) {
 		fprintf(stderr, "Failed to parse port!\n");
-		return "";
+		device_name = strdup("");
+		goto cleanup;
 	}
 
-	char *device_name = sp_get_port_usb_product(port);
+	device_name = strdup(sp_get_port_usb_product(port));
+cleanup:;
+	sp_free_port(port);
 	return device_name;
 }
 
@@ -63,6 +68,7 @@ struct Device *get_device_list(void)
 	enum sp_return result = sp_list_ports(&port_list);
 	if (result != SP_OK) {
 		fprintf(stderr, "Failed to parse ports!\n");
+		sp_free_port_list(port_list);
 		return NULL;
 	}
 
@@ -97,6 +103,8 @@ struct Device *get_device_list(void)
 			current_device = current_device->next;
 		}
 	}
+
+	sp_free_port_list(port_list);
 
 	return device_list;
 }
