@@ -1,10 +1,106 @@
 #include <script_utils.h>
 
-/// search for files in scripts directory with extention .lua, ignore others
-/// \param[in] dir_path path to directory
-/// \param[out] files array of files
-/// \param[out] files_count count of files
-/// \return 0 if success, 1 if error
+void lua_err(lua_State *L, char *msg)
+{
+	syslog(LOG_USER | LOG_ERR, "ERROR: %s: %s", msg, lua_tostring(L, -1));
+}
+
+int lua_state_init(char *file_path, lua_State **L)
+{
+	int ret = 0;
+	*L	= luaL_newstate();
+	luaL_openlibs(*L);
+
+	if (luaL_loadfile(*L, file_path)) {
+		lua_err(*L, "luaL_loadfile() failed");
+		ret = 1;
+		goto cleanup;
+	}
+	if (lua_pcall(*L, 0, 0, 0)) {
+		lua_err(*L, "lua_pcall() failed");
+		ret = 1;
+		goto cleanup;
+	}
+
+	return ret;
+
+cleanup:;
+	lua_close(*L);
+	return ret;
+}
+
+int does_lua_fun_exist(char *file_path, char *fun_name)
+{
+	int ret = 0;
+	lua_State *L;
+	if (lua_state_init(file_path, &L)) {
+		ret = -1;
+		return ret;
+	}
+
+	lua_getglobal(L, fun_name);
+	if (lua_isnil(L, -1)) {
+		lua_pop(L, 1);
+		ret = 0;
+		goto cleanup;
+	} else {
+		lua_pop(L, 1);
+		ret = 1;
+		goto cleanup;
+	}
+
+cleanup:;
+	lua_close(L);
+	return ret;
+}
+
+void try_call_lua_fun_no_args_no_ret(lua_State *L, char *file_path, char *fun_name)
+{
+	lua_getglobal(L, fun_name);
+	if (does_lua_fun_exist(file_path, fun_name) == 1) {
+		if (lua_pcall(L, 0, 0, 0)) {
+			lua_err(L, "lua_pcall() failed");
+		}
+	} else {
+		lua_pop(L, 1);
+	}
+}
+
+int get_data_from_lua_file(char *file_path, char **payload)
+{
+	int ret = 0;
+	lua_State *L;
+	if (lua_state_init(file_path, &L)) {
+		ret = -1;
+		return ret;
+	}
+
+	syslog(LOG_USER | LOG_INFO, "INFO: Lua file %s loaded", file_path);
+
+	try_call_lua_fun_no_args_no_ret(L, file_path, "init");
+
+	syslog(LOG_USER | LOG_INFO, "INFO: Tried to call lua function init()");
+
+	lua_getglobal(L, "get_data");
+	if (lua_pcall(L, 0, 1, 0)) {
+		lua_err(L, "lua_pcall() failed");
+		ret = 1;
+		goto cleanup;
+	}
+
+	syslog(LOG_USER | LOG_INFO, "INFO: Lua function get_data() called");
+
+	*payload = strdup(lua_tostring(L, -1));
+
+	try_call_lua_fun_no_args_no_ret(L, file_path, "deinit");
+
+	syslog(LOG_USER | LOG_INFO, "INFO: Tried to call lua function deinit()");
+
+cleanup:;
+	lua_close(L);
+	return ret;
+}
+
 int get_lua_files(const char *dir_path, char ***files, int *files_count)
 {
 	DIR *dir;
@@ -21,19 +117,29 @@ int get_lua_files(const char *dir_path, char ***files, int *files_count)
 					break;
 				}
 				if (strstr(ent->d_name, ".lua") != NULL) {
-					count++;
-					files_list    = realloc(files_list, count * sizeof(char *));
+					// +2 for '/' and '\0'
 					file_path_len = strlen(dir_path) + strlen(ent->d_name) + 2;
 					file_path     = malloc(file_path_len);
+					if (file_path == NULL) {
+						syslog(LOG_USER | LOG_ERR,
+						       "ERROR: Can't allocate memory for file_path");
+						continue;
+					}
 					snprintf(file_path, file_path_len, "%s/%s", dir_path, ent->d_name);
-					files_list[count - 1] = file_path;
+					if (does_lua_fun_exist(file_path, "get_data") == 1) {
+						count++;
+						files_list = realloc(files_list, count * sizeof(char *));
+						files_list[count - 1] = file_path;
+					} else {
+						free(file_path);
+					}
 				}
 			}
 		}
 		closedir(dir);
-		syslog(LOG_INFO, "INFO: Found %d lua files in %s", count, dir_path);
+		syslog(LOG_USER | LOG_INFO, "INFO: Found %d lua files in %s", count, dir_path);
 	} else {
-		syslog(LOG_ERR, "ERROR: Can't open directory %s", dir_path);
+		syslog(LOG_USER | LOG_ERR, "ERROR: Can't open directory %s", dir_path);
 		return 1;
 	}
 
@@ -41,62 +147,4 @@ int get_lua_files(const char *dir_path, char ***files, int *files_count)
 	*files_count = count;
 
 	return 0;
-}
-
-void lua_err(lua_State *L, char *msg)
-{
-	syslog(LOG_ERR, "ERROR: %s: %s", msg, lua_tostring(L, -1));
-}
-
-///
-
-int get_data_from_lua_file(const char *file_path, char **json_data)
-{
-	int ret = 0;
-	lua_State *L;
-	L = luaL_newstate();
-	luaL_openlibs(L);
-	if (luaL_loadfile(L, file_path)) {
-		lua_err(L, "luaL_loadfile() failed");
-	}
-	if (lua_pcall(L, 0, 0, 0)) {
-		lua_err(L, "lua_pcall() failed");
-	}
-
-	lua_getglobal(L, "get_data");
-	if (lua_isfunction(L, 0) == 0) {
-		lua_err(L, "lua_isfunction() failed");
-		ret = 1;
-		goto cleanup;
-	}
-
-	lua_pop(L, 1);
-
-	lua_getglobal(L, "init");
-	if (lua_isfunction(L, 0) == 0) {
-		lua_pop(L, 1);
-	} else {
-		if (lua_pcall(L, 0, 0, 0)) {
-			lua_err(L, "lua_pcall() failed");
-		}
-	}
-
-	lua_getglobal(L, "get_data");
-	if (lua_pcall(L, 0, 1, 0)) {
-		lua_err(L, "lua_pcall() failed");
-	}
-
-	lua_getglobal(L, "deinit");
-	if (lua_isfunction(L, 0) == 0) {
-		lua_pop(L, 1);
-	} else {
-		if (lua_pcall(L, 0, 0, 0)) {
-			lua_err(L, "lua_pcall() failed");
-		}
-	}
-	*json_data = strdup(lua_tostring(L, -1));
-
-cleanup:;
-	lua_close(L);
-	return ret;
 }

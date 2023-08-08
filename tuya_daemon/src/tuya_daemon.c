@@ -10,7 +10,6 @@
 #include <syslog.h>
 
 #include <argp_utils.h>
-#include <ubus_utils.h>
 #include <tuya_utils.h>
 
 tuya_mqtt_context_t client_instance;

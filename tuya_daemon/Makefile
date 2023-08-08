@@ -9,7 +9,7 @@ include $(INCLUDE_DIR)/package.mk
 define Package/tuya_daemon
 	CATEGORY:=Tuya
 	TITLE:=tuya_daemon
-	DEPENDS:=+tuya-iot-core-sdk
+	DEPENDS:=+tuya-iot-core-sdk +liblua
 endef
 
 define Package/tuya_daemon/description
@@ -20,6 +20,7 @@ define Package/tuya_daemon/install
 	$(INSTALL_DIR) $(1)/usr/bin
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_DIR) $(1)/etc/config
+	$(INSTALL_DIR) $(1)/usr/lib/tuya/lua
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/tuya_daemon $(1)/usr/bin
 	$(INSTALL_BIN) ./files/tuya_daemon.init $(1)/etc/init.d/tuya_daemon
 	$(INSTALL_CONF) ./files/tuya_daemon.config $(1)/etc/config/tuya_daemon

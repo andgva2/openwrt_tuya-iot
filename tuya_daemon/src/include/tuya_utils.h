@@ -8,11 +8,12 @@
 #include <tuya_log.h>
 #include <cJSON.h>
 
-#include <sys/sysinfo.h>
 #include <syslog.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 
 #include <daemonize.h>
 #include <script_utils.h>
